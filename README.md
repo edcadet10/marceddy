@@ -52,6 +52,9 @@ Select any with `scan --source <name>` / `search --source <name>`:
 | `muse` | none | The Muse public API. |
 | `greenhouse` | none | Greenhouse public job boards. |
 | `simplyhired` | none | SimplyHired search; reads the page's own `__NEXT_DATA__` JSON (title/company/location/listed salary). |
+| `himalayas` | none | Himalayas public API (remote, often US-eligible; listed salary). |
+| `workingnomads` | none | Working Nomads public API (remote jobs). |
+| `weworkremotely` | none | We Work Remotely RSS feed (remote jobs). |
 | `jsearch` | API key | JSearch / Google-for-Jobs (adds Indeed & LinkedIn); needs a RapidAPI key. |
 | `indeed` | bridge | Reads a live-Indeed inbox dropped by a small `claude -p` bridge. |
 | `companies` | none | Curated employer→ATS registry pulled directly from each company's ATS public API (Greenhouse/Lever/Ashby/SmartRecruiters/Workable/Workday/Oracle). |

@@ -143,6 +143,14 @@ def _http_post_json(url, payload, timeout=20):
         return json.loads(r.read().decode("utf-8", "replace"))
 
 
+def _http_get_text(url, timeout=25):
+    """GET raw text via urllib (for RSS/XML feeds that have no JSON endpoint)."""
+    req = urllib.request.Request(
+        url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode("utf-8", "replace")
+
+
 def _http_get_text_curl(url, user_agent, timeout=30):
     """GET raw page text via the ``curl`` binary instead of urllib.
 
@@ -470,6 +478,136 @@ class SimplyHiredSource(JobSource):
                 salary_basis="listed" if salary else "",
             ))
         return jobs
+
+
+class HimalayasSource(JobSource):
+    """Himalayas public API — remote jobs, no key. Often US-eligible."""
+    name = "himalayas"
+    attribution = "Jobs via the Himalayas public API (himalayas.app)."
+    BASE = "https://himalayas.app/jobs/api"
+
+    def fetch(self, query="", limit=25):
+        data = _http_get_json(self.BASE + "?limit=100")
+        items = data.get("jobs", []) if isinstance(data, dict) else []
+        jobs = []
+        for d in items:
+            if not isinstance(d, dict):
+                continue
+            title = (d.get("title") or "").strip()
+            if not title:
+                continue
+            loc = ", ".join(x for x in (d.get("locationRestrictions") or []) if x) or "Remote"
+            salary = ""
+            mn, mx = d.get("minSalary"), d.get("maxSalary")
+            cur = (d.get("currency") or "USD")
+            per = (d.get("salaryPeriod") or "").strip()
+            try:
+                if mn and mx:
+                    salary = f"{cur} {int(mn):,}-{int(mx):,} {per}".strip()
+                elif mn:
+                    salary = f"{cur} {int(mn):,}+ {per}".strip()
+            except (TypeError, ValueError):
+                salary = ""
+            jobs.append(Job(
+                source="himalayas",
+                company=(d.get("companyName") or "Unknown").strip(),
+                title=title,
+                url=d.get("applicationLink") or d.get("guid") or "",
+                location=loc,
+                remote=True,
+                description=(d.get("description") or "")[:2000],
+                tags=[c for c in (d.get("categories") or []) if isinstance(c, str)],
+                posted_ts=str(d.get("pubDate") or ""),
+                ext_id=str(d.get("guid") or ""),
+                salary=salary,
+                salary_basis="listed" if salary else "",
+            ))
+        if query:
+            q = query.lower()
+            jobs = [j for j in jobs if q in j.text_blob()]
+        return jobs[:limit]
+
+
+class WorkingNomadsSource(JobSource):
+    """Working Nomads public API — remote jobs, no key."""
+    name = "workingnomads"
+    attribution = "Jobs via the Working Nomads public API (workingnomads.com)."
+    BASE = "https://www.workingnomads.com/api/exposed_jobs/"
+
+    def fetch(self, query="", limit=25):
+        data = _http_get_json(self.BASE)
+        items = data if isinstance(data, list) else data.get("jobs", [])
+        jobs = []
+        for d in items:
+            if not isinstance(d, dict):
+                continue
+            title = (d.get("title") or "").strip()
+            if not title:
+                continue
+            jobs.append(Job(
+                source="workingnomads",
+                company=(d.get("company_name") or "Unknown").strip(),
+                title=title,
+                url=d.get("url", "") or "",
+                location=(d.get("location") or "Remote").strip(),
+                remote=True,
+                description=(d.get("description") or "")[:2000],
+                tags=[t for t in (d.get("tags") or "").split(",") if t][:8],
+                posted_ts=str(d.get("pub_date") or ""),
+                ext_id=d.get("url", "") or "",
+            ))
+        if query:
+            q = query.lower()
+            jobs = [j for j in jobs if q in j.text_blob()]
+        return jobs[:limit]
+
+
+class WeWorkRemotelySource(JobSource):
+    """We Work Remotely RSS feed — remote jobs, no key. Titles are "Company: Role"."""
+    name = "weworkremotely"
+    attribution = "Jobs via the We Work Remotely RSS feed (weworkremotely.com)."
+    BASE = "https://weworkremotely.com/remote-jobs.rss"
+
+    def fetch(self, query="", limit=25):
+        import xml.etree.ElementTree as ET
+        try:
+            root = ET.fromstring(_http_get_text(self.BASE))
+        except Exception:
+            return []
+        jobs = []
+        seen = set()
+        for it in root.findall(".//item"):
+            def g(tag):
+                e = it.find(tag)
+                return (e.text or "").strip() if e is not None and e.text else ""
+            raw = g("title")
+            if not raw:
+                continue
+            key = g("guid") or raw
+            if key in seen:  # WWR's feed repeats featured jobs
+                continue
+            seen.add(key)
+            company, sep, role = raw.partition(":")
+            if sep and role.strip():
+                comp, title = company.strip(), role.strip()
+            else:
+                comp, title = "Unknown", raw
+            jobs.append(Job(
+                source="weworkremotely",
+                company=comp or "Unknown",
+                title=title,
+                url=g("link") or g("guid"),
+                location=g("region") or "Remote",
+                remote=True,
+                description="",
+                tags=[g("category")] if g("category") else [],
+                posted_ts=g("pubDate"),
+                ext_id=g("guid"),
+            ))
+        if query:
+            q = query.lower()
+            jobs = [j for j in jobs if q in j.text_blob()]
+        return jobs[:limit]
 
 
 class IndeedFileSource(JobSource):
@@ -877,8 +1015,8 @@ class USCombinedSource(JobSource):
     attribution = ("Aggregated US sources: company career pages (registry: "
                    "Greenhouse/Lever/Ashby/SmartRecruiters/Workable/Workday) + The Muse "
                    "+ Greenhouse boards + Remotive + RemoteOK + Jobicy + SimplyHired "
-                   "+ JSearch/Google-for-Jobs (adds Indeed & LinkedIn when a RapidAPI key "
-                   "is configured).")
+                   "+ Himalayas + Working Nomads + We Work Remotely + JSearch/Google-for-"
+                   "Jobs (adds Indeed & LinkedIn when a RapidAPI key is configured).")
 
     def fetch(self, query="", limit=25):
         out = []
@@ -887,7 +1025,8 @@ class USCombinedSource(JobSource):
         # priority coverage per Ed); the free aggregators fill in the remainder.
         for src in (IndeedFileSource(), JSearchSource(), CompanyRegistrySource(),
                     SimplyHiredSource(), MuseSource(), GreenhouseSource(),
-                    RemotiveSource(), RemoteOKSource(), JobicySource()):
+                    RemotiveSource(), RemoteOKSource(), JobicySource(),
+                    HimalayasSource(), WorkingNomadsSource(), WeWorkRemotelySource()):
             try:
                 out.extend(src.fetch(query, limit * 3))
             except Exception:
@@ -912,6 +1051,9 @@ _SOURCES = {
     "remoteok": RemoteOKSource,
     "jobicy": JobicySource,
     "simplyhired": SimplyHiredSource,
+    "himalayas": HimalayasSource,
+    "workingnomads": WorkingNomadsSource,
+    "weworkremotely": WeWorkRemotelySource,
     "jsearch": JSearchSource,
     "indeed": IndeedFileSource,
     "companies": CompanyRegistrySource,
