@@ -1,5 +1,7 @@
 # MarcEddy
 
+[![CI](https://github.com/edcadet10/marceddy/actions/workflows/ci.yml/badge.svg)](https://github.com/edcadet10/marceddy/actions/workflows/ci.yml)
+
 MarcEddy is a job-search agent that handles the tedious half of a job hunt:
 finding real openings, figuring out which ones are actually worth your time, and
 keeping track of what you've already seen and applied to. It runs on a schedule
