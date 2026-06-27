@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+# Virtualenv
+.venv/
+venv/
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+# MarcEddy runtime home (never commit a user's data/credentials)
+.marceddy/
+*.local.json

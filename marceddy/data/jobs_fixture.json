@@ -1,0 +1,57 @@
+[
+  {
+    "id": "nw-it-support-001",
+    "company": "Northwind Systems",
+    "title": "IT Support Specialist",
+    "url": "https://careers.northwind-systems.io/jobs/it-support-specialist-001",
+    "location": "Columbus, OH (Hybrid)",
+    "remote": true,
+    "tags": ["it support", "windows", "active directory", "ticketing", "networking"],
+    "description": "Provide Tier 1/2 help desk support. Troubleshoot Windows 11, Active Directory accounts, networking (DNS, DHCP), and hardware. Manage tickets and document resolutions.",
+    "posted_ts": "2026-06-23T09:00:00Z"
+  },
+  {
+    "id": "ac-helpdesk-002",
+    "company": "Acme Cloud",
+    "title": "Help Desk Technician",
+    "url": "https://acmecloud.com/careers/help-desk-technician-002",
+    "location": "Remote (US)",
+    "remote": true,
+    "tags": ["help desk", "windows 11", "customer support", "troubleshooting"],
+    "description": "Front-line help desk technician supporting Windows 11 endpoints, password resets, and customer support. Strong troubleshooting and ticketing skills required.",
+    "posted_ts": "2026-06-22T14:30:00Z"
+  },
+  {
+    "id": "gx-jr-sysadmin-003",
+    "company": "Globex IT",
+    "title": "Junior Systems Administrator",
+    "url": "https://jobs.globex-it.com/junior-systems-administrator-003",
+    "location": "Remote",
+    "remote": true,
+    "tags": ["linux", "networking", "dns", "dhcp", "bash", "automation"],
+    "description": "Junior sysadmin to help manage Linux servers, networking (DNS/DHCP/subnetting), and automate routine tasks with Bash and Python. Git and SSH experience preferred.",
+    "posted_ts": "2026-06-21T11:00:00Z"
+  },
+  {
+    "id": "in-jr-python-004",
+    "company": "Initech Software",
+    "title": "Junior Python Developer",
+    "url": "https://initech.example.com/careers/junior-python-developer-004",
+    "location": "Remote (US)",
+    "remote": true,
+    "tags": ["python", "fastapi", "postgresql", "docker", "git", "rest apis"],
+    "description": "Build and maintain backend services in Python and FastAPI on PostgreSQL. Containerized with Docker, deployed continuously. REST API design and Git required.",
+    "posted_ts": "2026-06-20T16:45:00Z"
+  },
+  {
+    "id": "um-desktop-005",
+    "company": "Umbrella Tech",
+    "title": "Desktop Support Engineer",
+    "url": "https://umbrella-tech.example.org/jobs/desktop-support-engineer-005",
+    "location": "Columbus, OH",
+    "remote": false,
+    "tags": ["desktop support", "windows", "hardware", "active directory", "troubleshooting"],
+    "description": "On-site desktop support: imaging, hardware repair, Windows 11, Active Directory, and end-user troubleshooting across the office.",
+    "posted_ts": "2026-06-19T08:15:00Z"
+  }
+]
