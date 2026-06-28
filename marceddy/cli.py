@@ -6,6 +6,7 @@ DRY-RUN by default; real submission only with --submit (off by default).
 import argparse
 import json
 import os
+import socket
 import sys
 from pathlib import Path
 
@@ -26,6 +27,18 @@ from .sources import (PKG_DIR, get_source, resolve_company,
 
 BANNER = ("MarcEddy - autonomous job-application agent (DRY-RUN by default; "
           "real submit/account-creation only behind --submit, off by default).")
+
+
+def _instance_label():
+    """Short tag identifying which machine sent an email, so digests from two
+    instances (e.g. ed-home vs. an Azure box) are distinguishable in one inbox.
+    Defaults to the hostname; override with MARCEDDY_INSTANCE."""
+    return (os.environ.get("MARCEDDY_INSTANCE") or socket.gethostname() or "marceddy").strip()
+
+
+def _subject(text):
+    """Prefix an email subject with the instance label, e.g. '[ed-home] ...'."""
+    return "[%s] %s" % (_instance_label(), text)
 
 FIXTURE_MAILBOX = PKG_DIR / "data" / "mailbox"
 
@@ -176,7 +189,7 @@ def cmd_report(args, cfg):
         to = cfg.account_email
         smtp = (json.loads(Path(cfg.creds_path).read_text()).get("smtp", {})
                 if Path(cfg.creds_path).exists() else {})
-        subject = "MarcEddy — no new matches this scan (%d in queue)" % len(ready)
+        subject = _subject("MarcEddy — no new matches this scan (%d in queue)" % len(ready))
         body = ("MarcEddy just ran its scan and found no new roles matching your filters this time.\n\n"
                 "Ready-to-submit queue: %d job(s) still waiting for you.\n"
                 "Last new matches were sent %s.\n\n"
@@ -206,8 +219,8 @@ def cmd_report(args, cfg):
         for p in (r.get("cover_letter_path"), r.get("tailored_resume_path")):
             if p and Path(p).exists():
                 attach.append(p)
-    subject = ("MarcEddy — %d new job(s) ready to submit" % len(new_ready)) if new_ready \
-        else ("MarcEddy — %d new update(s)" % len(new_replies))
+    subject = _subject(("MarcEddy — %d new job(s) ready to submit" % len(new_ready)) if new_ready
+                       else ("MarcEddy — %d new update(s)" % len(new_replies)))
     try:
         send_self_email(smtp.get("host", "smtp.gmail.com"), int(smtp.get("port", 587)),
                         smtp.get("username", to), smtp["password"], to, subject, digest,
