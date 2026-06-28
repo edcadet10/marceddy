@@ -71,6 +71,28 @@
 
     {"name": "Palantir", "backend": "lever", "slug": "palantir"},
 
-    {"name": "Visa", "backend": "smartrecruiters", "slug": "Visa"}
+    {"name": "Visa", "backend": "smartrecruiters", "slug": "Visa"},
+
+    {"name": "xAI", "backend": "greenhouse", "slug": "xai"},
+    {"name": "Google DeepMind", "backend": "greenhouse", "slug": "deepmind"},
+    {"name": "Mistral AI", "backend": "lever", "slug": "mistral"},
+    {"name": "Cohere", "backend": "ashby", "slug": "cohere"},
+    {"name": "Perplexity", "backend": "ashby", "slug": "perplexity"},
+    {"name": "ElevenLabs", "backend": "ashby", "slug": "elevenlabs"},
+    {"name": "Cursor (Anysphere)", "backend": "ashby", "slug": "cursor"},
+    {"name": "Cognition", "backend": "ashby", "slug": "cognition"},
+    {"name": "Sierra", "backend": "ashby", "slug": "sierra"},
+    {"name": "Harvey", "backend": "ashby", "slug": "harvey"},
+    {"name": "Glean", "backend": "greenhouse", "slug": "gleanwork"},
+    {"name": "Decagon", "backend": "ashby", "slug": "decagon"},
+    {"name": "Writer", "backend": "ashby", "slug": "writer"},
+    {"name": "Crusoe", "backend": "ashby", "slug": "crusoe"},
+    {"name": "Baseten", "backend": "ashby", "slug": "baseten"},
+    {"name": "Fireworks AI", "backend": "ashby", "slug": "fireworksai"},
+    {"name": "Modal", "backend": "ashby", "slug": "modal"},
+    {"name": "LangChain", "backend": "ashby", "slug": "langchain"},
+    {"name": "Character.AI", "backend": "ashby", "slug": "character"},
+    {"name": "Stability AI", "backend": "greenhouse", "slug": "stabilityai"},
+    {"name": "Pinecone", "backend": "ashby", "slug": "pinecone"}
   ]
 }
