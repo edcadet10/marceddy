@@ -42,10 +42,23 @@ def test_objective_targets_job():
     assert PROFILE["name"] in content
 
 
+def _have_docx():
+    try:
+        import docx  # noqa: F401  (python-docx)
+        return True
+    except Exception:
+        return False
+
+
 def test_writes_docx_and_txt(cfg):
     job = FixtureSource().fetch()[0]
     path = write_resume(job, PROFILE, POLICY, cfg)
-    assert path.endswith(".docx")
     base = resume_basename(job)
-    assert (cfg.resumes_dir / (base + ".docx")).exists()
+    # The .txt is always written (stdlib only); the .docx is the primary file
+    # when python-docx is installed, else write_resume falls back to .txt.
     assert (cfg.resumes_dir / (base + ".txt")).exists()
+    if _have_docx():
+        assert path.endswith(".docx")
+        assert (cfg.resumes_dir / (base + ".docx")).exists()
+    else:
+        assert path.endswith(".txt")

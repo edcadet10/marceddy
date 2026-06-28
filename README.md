@@ -38,11 +38,13 @@ marceddy scan --source us --query "help desk" --limit 20
 ```
 
 The core has **no third-party dependencies** — it runs on the Python standard
-library. The one optional extra is Playwright, and only if you want the
-browser-based source (`companies-browser`):
+library, and the test suite passes on a bare `pip install -e ".[dev]"`. Two
+optional extras unlock more:
 
 ```
-pip install playwright && playwright install chromium
+pip install -e ".[docx]"      # write tailored resumes as .docx (otherwise .txt)
+pip install -e ".[browser]"   # autofill + the companies-browser ATS source
+playwright install chromium   # one-time browser download for the browser extra
 ```
 
 ## Where it draws the line

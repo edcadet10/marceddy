@@ -10,11 +10,17 @@ def test_scan_idempotency_and_resumes(cfg):
     assert r1["tailored"] == r1["fit"]
     assert r1["fit"] >= 3
 
-    # one tailored resume file per tailored job, named <company>_<role>_<jobid>.md
-    resumes = sorted(cfg.resumes_dir.glob("*.docx"))
+    # one tailored resume file per tailored job, named <company>_<role>_<jobid>.<ext>.
+    # write_resume emits .docx when python-docx is installed, else falls back to .txt.
+    try:
+        import docx  # noqa: F401  (python-docx)
+        ext = "docx"
+    except Exception:
+        ext = "txt"
+    resumes = sorted(cfg.resumes_dir.glob("*." + ext))
     assert len(resumes) == r1["tailored"]
     for p in resumes:
-        assert re.match(r"^[a-z0-9-]+_[a-z0-9-]+_fixture-[0-9a-f]+\.docx$", p.name)
+        assert re.match(r"^[a-z0-9-]+_[a-z0-9-]+_fixture-[0-9a-f]+\." + ext + r"$", p.name)
 
     # ledger has the required per-job fields
     import json
@@ -28,7 +34,7 @@ def test_scan_idempotency_and_resumes(cfg):
     r2 = run_scan(cfg, source_name="fixture", verbose=False)
     assert r2["new"] == 0
     assert r2["tailored"] == 0
-    assert len(list(cfg.resumes_dir.glob("*.docx"))) == r1["tailored"]
+    assert len(list(cfg.resumes_dir.glob("*." + ext))) == r1["tailored"]
 
 
 def test_submit_is_gated_off(cfg):

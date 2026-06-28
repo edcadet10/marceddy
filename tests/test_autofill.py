@@ -1,5 +1,11 @@
 import os
 
+import pytest
+
+# Autofill drives a real browser; skip cleanly when the optional dep is absent
+# (keeps CI green on a stdlib-only install). Runs fully where playwright is set up.
+pytest.importorskip("playwright")
+
 from marceddy.apply import prepare_applications
 from marceddy.autofill import ensure_demo_form, fill_application
 from marceddy.ledger import Ledger

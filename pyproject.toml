@@ -13,6 +13,8 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest"]
+docx = ["python-docx"]      # .docx resume output (otherwise falls back to .txt)
+browser = ["playwright"]    # autofill + the companies-browser ATS harvester
 
 [project.scripts]
 marceddy = "marceddy.cli:main"
