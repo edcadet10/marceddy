@@ -197,6 +197,50 @@ def _jsearch_key():
     return ""
 
 
+def _usajobs_creds():
+    """(api_key, email) for the USAJOBS API, from env or the credentials store.
+
+    Env USAJOBS_API_KEY (+ USAJOBS_EMAIL for the required User-Agent), else
+    credentials.json -> job_sources.usajobs.{api_key,email}. Returns ("","") when
+    unset so USAJobsSource cleanly no-ops until a key is dropped in.
+    """
+    key = (os.environ.get("USAJOBS_API_KEY") or "").strip()
+    email = (os.environ.get("USAJOBS_EMAIL") or "").strip()
+    if not (key and email):
+        p = _marceddy_home() / "credentials.json"
+        if p.exists():
+            try:
+                uj = ((json.loads(p.read_text()).get("job_sources", {}) or {})
+                      .get("usajobs", {}) or {})
+                key = key or (uj.get("api_key") or "").strip()
+                email = email or (uj.get("email") or "").strip()
+            except Exception:
+                pass
+    return key, email
+
+
+def _careeronestop_creds():
+    """(token, user_id) for the CareerOneStop API, from env or the credentials store.
+
+    Env CAREERONESTOP_TOKEN + CAREERONESTOP_USERID, else credentials.json ->
+    job_sources.careeronestop.{token,user_id}. Returns ("","") when unset so
+    CareerOneStopSource cleanly no-ops until both are provided.
+    """
+    token = (os.environ.get("CAREERONESTOP_TOKEN") or "").strip()
+    uid = (os.environ.get("CAREERONESTOP_USERID") or "").strip()
+    if not (token and uid):
+        p = _marceddy_home() / "credentials.json"
+        if p.exists():
+            try:
+                co = ((json.loads(p.read_text()).get("job_sources", {}) or {})
+                      .get("careeronestop", {}) or {})
+                token = token or (co.get("token") or "").strip()
+                uid = uid or (co.get("user_id") or "").strip()
+            except Exception:
+                pass
+    return token, uid
+
+
 class ArbeitnowSource(JobSource):
     name = "arbeitnow"
     attribution = ("Jobs via Arbeitnow public job-board API (arbeitnow.com). "
@@ -858,6 +902,131 @@ class JSearchSource(JobSource):
         return jobs[:limit]
 
 
+class USAJobsSource(JobSource):
+    """USAJOBS — the official US federal government jobs API (data.usajobs.gov).
+
+    Free API key from https://developer.usajobs.gov/apirequest . Provide it via env
+    USAJOBS_API_KEY (+ USAJOBS_EMAIL, used as the required User-Agent) or in
+    credentials.json -> job_sources.usajobs.{api_key,email}. With no key it returns
+    [] so the `us` aggregate keeps working until a key is dropped in.
+    """
+    name = "usajobs"
+    attribution = ("Jobs via the USAJOBS API (data.usajobs.gov), the official US "
+                   "federal government job board. Each result links to its usajobs.gov posting.")
+    BASE = "https://data.usajobs.gov/api/search"
+    DEFAULT_QUERY = "information technology support"
+
+    def fetch(self, query="", limit=25):
+        key, email = _usajobs_creds()
+        if not key:
+            return []
+        q = (query or self.DEFAULT_QUERY).strip()
+        params = {"Keyword": q, "ResultsPerPage": str(min(max(limit, 1), 500))}
+        url = self.BASE + "?" + urllib.parse.urlencode(params)
+        headers = {"Authorization-Key": key, "Host": "data.usajobs.gov",
+                   "User-Agent": email or USER_AGENT}
+        try:
+            data = _http_get_json_auth(url, headers)
+        except Exception:
+            return []
+        items = (((data or {}).get("SearchResult") or {}).get("SearchResultItems")) or []
+        jobs = []
+        for it in items:
+            d = (it or {}).get("MatchedObjectDescriptor") or {}
+            title = (d.get("PositionTitle") or "").strip()
+            if not title:
+                continue
+            rem = (d.get("PositionRemuneration") or [{}])
+            rem = rem[0] if rem else {}
+            salary = ""
+            try:
+                lo, hi = rem.get("MinimumRange"), rem.get("MaximumRange")
+                unit = (rem.get("RateIntervalCode") or rem.get("Description") or "").strip()
+                if lo and hi:
+                    salary = ("$%s - $%s %s" % (format(int(float(lo)), ","),
+                                                format(int(float(hi)), ","), unit)).strip()
+            except (TypeError, ValueError):
+                salary = ""
+            details = (d.get("UserArea") or {}).get("Details") or {}
+            remote = str(details.get("RemoteIndicator")
+                         or details.get("TeleworkEligible") or "").lower() in ("true", "1", "yes")
+            jobs.append(Job(
+                source="usajobs",
+                company=(d.get("OrganizationName") or d.get("DepartmentName")
+                         or "U.S. Government").strip(),
+                title=title,
+                url=d.get("PositionURI") or "",
+                location=(d.get("PositionLocationDisplay") or "United States").strip(),
+                remote=remote,
+                description=(d.get("QualificationSummary") or "")[:2000],
+                tags=[c.get("Name") for c in (d.get("JobCategory") or [])
+                      if isinstance(c, dict) and c.get("Name")][:6],
+                posted_ts=str(d.get("PublicationStartDate") or d.get("PositionStartDate") or ""),
+                ext_id=str(d.get("PositionID") or it.get("MatchedObjectId") or ""),
+                salary=salary,
+                salary_basis="listed" if salary else "",
+            ))
+        # USAJOBS matches Keyword server-side, so no client-side substring re-filter.
+        return jobs[:limit]
+
+
+class CareerOneStopSource(JobSource):
+    """CareerOneStop — US Dept. of Labor job-postings API (api.careeronestop.org).
+
+    Free credentials (API token + userId) from
+    https://www.careeronestop.org/Developers/WebAPI/registration.aspx . Provide via
+    env CAREERONESTOP_TOKEN + CAREERONESTOP_USERID or in credentials.json ->
+    job_sources.careeronestop.{token,user_id}. With no creds it returns [] so the
+    `us` aggregate keeps working until they're dropped in.
+    """
+    name = "careeronestop"
+    attribution = ("Jobs via the CareerOneStop Job Search API (api.careeronestop.org), "
+                   "sponsored by the U.S. Department of Labor (sourced from the National "
+                   "Labor Exchange). Each result links to its original posting.")
+    BASE = "https://api.careeronestop.org/v1/jobsearch"
+    DEFAULT_QUERY = "information technology support"
+
+    def fetch(self, query="", limit=25):
+        token, uid = _careeronestop_creds()
+        if not (token and uid):
+            return []
+        q = (query or self.DEFAULT_QUERY).strip()
+        # Positional path: /{userId}/{keyword}/{location}/{radius}/{sort}/{dir}/{start}/{size}/{days}
+        path = "/".join([
+            urllib.parse.quote(uid, safe=""),
+            urllib.parse.quote(q, safe=""),
+            "US", "0", "accquisitiondate", "0", "0",
+            str(min(max(limit, 1), 100)), "30",
+        ])
+        url = "%s/%s?source=NLx" % (self.BASE, path)
+        try:
+            data = _http_get_json_auth(url, {"Authorization": "Bearer " + token})
+        except Exception:
+            return []
+        items = (data or {}).get("Jobs") or []
+        jobs = []
+        for d in items:
+            if not isinstance(d, dict):
+                continue
+            title = (d.get("JobTitle") or "").strip()
+            if not title:
+                continue
+            loc = (d.get("Location") or "United States").strip()
+            jobs.append(Job(
+                source="careeronestop",
+                company=(d.get("Company") or "Unknown").strip(),
+                title=title,
+                url=(d.get("URL") or d.get("DetailUrl") or "").strip(),
+                location=loc,
+                remote="remote" in loc.lower(),
+                description="",
+                tags=[],
+                posted_ts=str(d.get("AccquisitionDate") or d.get("PostDate") or ""),
+                ext_id=str(d.get("JvId") or d.get("JobID") or ""),
+            ))
+        return jobs[:limit]
+
+
 # --------------------------------------------------------------------------
 # Company registry: check each employer's career page DIRECTLY via its ATS
 # public API. No key, no scraping, ToS-clean, refreshes daily. A company name
@@ -1122,7 +1291,8 @@ class USCombinedSource(JobSource):
                     SimplyHiredSource(), MuseSource(), GreenhouseSource(),
                     RemotiveSource(), RemoteOKSource(), JobicySource(),
                     HimalayasSource(), WorkingNomadsSource(), WeWorkRemotelySource(),
-                    DevITjobsSource(), FourDayWeekSource()):
+                    DevITjobsSource(), FourDayWeekSource(),
+                    USAJobsSource(), CareerOneStopSource()):
             try:
                 out.extend(src.fetch(query, limit * 3))
             except Exception:
@@ -1152,6 +1322,8 @@ _SOURCES = {
     "weworkremotely": WeWorkRemotelySource,
     "devitjobs": DevITjobsSource,
     "fourdayweek": FourDayWeekSource,
+    "usajobs": USAJobsSource,
+    "careeronestop": CareerOneStopSource,
     "jsearch": JSearchSource,
     "indeed": IndeedFileSource,
     "companies": CompanyRegistrySource,

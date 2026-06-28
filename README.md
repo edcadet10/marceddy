@@ -83,7 +83,7 @@ I wanted something I could leave running without wondering whether it was doing 
 Pick one with `scan --source <name>` (or `search --source <name>` for a quick smoke test). Most need no key.
 
 <details open>
-<summary><b>All 18 sources</b> — tap to collapse</summary>
+<summary><b>All 20 sources</b> — tap to collapse</summary>
 
 <br/>
 
@@ -102,11 +102,30 @@ Pick one with `scan --source <name>` (or `search --source <name>` for a quick sm
 | `weworkremotely` | — | We Work Remotely's RSS feed (remote roles). |
 | `devitjobs` | — | DevITjobs US API — US software/IT roles, usually with listed salary. |
 | `fourdayweek` | — | 4 Day Week API — roles with a four-day work week. |
+| `usajobs` | 🔑 key | USAJOBS — the official US **federal** government jobs API. Free key. |
+| `careeronestop` | 🔑 key | CareerOneStop — US Dept. of Labor job postings (National Labor Exchange). Free token. |
 | `jsearch` | 🔑 key | JSearch / Google-for-Jobs; pulls in Indeed and LinkedIn too. Needs a RapidAPI key. |
 | `indeed` | 🔌 bridge | Reads a live-Indeed inbox dropped in by a small `claude -p` helper. |
 | `companies` | — | A curated company→ATS list, queried against each employer's public ATS API (Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Workday, Oracle). |
 | `companies-browser` | — | Headless-browser harvest for ATSs with no clean JSON board (Phenom, Taleo, SuccessFactors). |
 | `us` | mixed | **The everything-source:** runs all the legitimate US feeds above in one sweep and dedupes. |
+
+</details>
+
+<details>
+<summary><b>Keyed sources — getting the free keys</b></summary>
+
+<br/>
+
+All keyed sources **no-op cleanly until a key is present**, so the `us` sweep works with zero config and simply gets richer as you add keys. Drop credentials into `~/.marceddy/credentials.json` under `job_sources`, or set them in the environment.
+
+| Source | Get the key | credentials.json | Environment |
+| --- | --- | --- | --- |
+| `usajobs` | [developer.usajobs.gov/apirequest](https://developer.usajobs.gov/apirequest) (free, instant) | `job_sources.usajobs.{api_key, email}` | `USAJOBS_API_KEY`, `USAJOBS_EMAIL` |
+| `careeronestop` | [careeronestop.org/Developers/WebAPI](https://www.careeronestop.org/Developers/WebAPI/registration.aspx) (free) | `job_sources.careeronestop.{token, user_id}` | `CAREERONESTOP_TOKEN`, `CAREERONESTOP_USERID` |
+| `jsearch` | [rapidapi.com/.../jsearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) (free tier) | `job_sources.jsearch.api_key` | `JSEARCH_API_KEY` |
+
+For USAJOBS the registered **email is sent as the User-Agent**, which the API requires.
 
 </details>
 

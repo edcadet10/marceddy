@@ -32,7 +32,12 @@ def default_creds(config):
         "job_sources": {
             "arbeitnow": {"api_key": ""},
             "remotive": {"api_key": ""},
-            "usajobs": {"email": config.account_email, "api_key": ""},
+            "usajobs": {"email": config.account_email, "api_key": "",
+                        "note": "Free API key at developer.usajobs.gov/apirequest "
+                                "(email is sent as the required User-Agent)."},
+            "careeronestop": {"token": "", "user_id": "",
+                              "note": "Free token + userId at careeronestop.org/"
+                                      "Developers/WebAPI (US Dept. of Labor job postings)."},
             "jsearch": {"api_key": "",
                         "note": "RapidAPI key for JSearch (Google for Jobs: "
                                 "Indeed + LinkedIn). Free tier at rapidapi.com."},
