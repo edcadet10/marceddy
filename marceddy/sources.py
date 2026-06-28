@@ -922,6 +922,12 @@ class USAJobsSource(JobSource):
             return []
         q = (query or self.DEFAULT_QUERY).strip()
         params = {"Keyword": q, "ResultsPerPage": str(min(max(limit, 1), 500))}
+        # Optional occupational-series filter, e.g. "2210" = IT Management. Set
+        # MARCEDDY_USAJOBS_CATEGORY (colon-separated for multiple) to focus the
+        # federal results; left unset, the search spans all series.
+        cat = (os.environ.get("MARCEDDY_USAJOBS_CATEGORY") or "").strip()
+        if cat:
+            params["JobCategoryCode"] = cat
         url = self.BASE + "?" + urllib.parse.urlencode(params)
         headers = {"Authorization-Key": key, "Host": "data.usajobs.gov",
                    "User-Agent": email or USER_AGENT}
