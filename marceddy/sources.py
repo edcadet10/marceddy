@@ -610,6 +610,100 @@ class WeWorkRemotelySource(JobSource):
         return jobs[:limit]
 
 
+class DevITjobsSource(JobSource):
+    """DevITjobs US public API — US software/IT jobs, no key, listed salary."""
+    name = "devitjobs"
+    attribution = "Jobs via the DevITjobs US public API (devitjobs.us)."
+    BASE = "https://devitjobs.us/api/jobsLight"
+
+    def fetch(self, query="", limit=25):
+        data = _http_get_json(self.BASE)
+        items = data if isinstance(data, list) else data.get("jobs", [])
+        jobs = []
+        for d in items:
+            if not isinstance(d, dict):
+                continue
+            title = (d.get("name") or "").strip()
+            if not title:
+                continue
+            city = (d.get("actualCity") or d.get("cityCategory") or "").replace("-", " ").strip()
+            state = (d.get("stateCategory") or "").replace("-", " ").strip()
+            loc = ", ".join(x for x in (city, state) if x) or "United States"
+            workplace = (d.get("workplace") or "").lower()
+            remote = workplace == "remote" or (d.get("remoteType") or "").lower() in ("anywhere", "remote")
+            salary = ""
+            sf, st = d.get("annualSalaryFrom"), d.get("annualSalaryTo")
+            try:
+                if sf and st:
+                    salary = "$%s-$%s a year" % (format(int(sf), ","), format(int(st), ","))
+                elif sf:
+                    salary = "$%s+ a year" % format(int(sf), ",")
+            except (TypeError, ValueError):
+                salary = ""
+            slug = d.get("jobUrl") or ""
+            url = ("https://devitjobs.us/job/" + slug) if slug else "https://devitjobs.us/"
+            jobs.append(Job(
+                source="devitjobs",
+                company=(d.get("company") or "Unknown").strip(),
+                title=title,
+                url=url,
+                location=loc,
+                remote=remote,
+                description="",
+                tags=[t for t in (d.get("technologies") or []) if isinstance(t, str)][:10],
+                posted_ts=str(d.get("activeFrom") or ""),
+                ext_id=str(d.get("_id") or ""),
+                salary=salary,
+                salary_basis="listed" if salary else "",
+            ))
+        if query:
+            q = query.lower()
+            jobs = [j for j in jobs if q in j.text_blob()]
+        return jobs[:limit]
+
+
+class FourDayWeekSource(JobSource):
+    """4 Day Week public API — roles with a 4-day work week, no key."""
+    name = "fourdayweek"
+    attribution = "Jobs via the 4 Day Week public API (4dayweek.io); 4-day-week roles."
+    BASE = "https://4dayweek.io/api/jobs"
+
+    def fetch(self, query="", limit=25):
+        data = _http_get_json(self.BASE)
+        items = data.get("jobs", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+        jobs = []
+        for d in items:
+            if not isinstance(d, dict):
+                continue
+            title = (d.get("title") or "").strip()
+            if not title:
+                continue
+            locs = d.get("locations") or []
+            loc0 = locs[0] if locs and isinstance(locs[0], dict) else {}
+            loc = ", ".join(x for x in (loc0.get("city"), loc0.get("country")) if x) or "Remote"
+            arrangement = (d.get("work_arrangement") or "").lower()
+            remote = arrangement == "remote" or "remote" in loc.lower()
+            slug = d.get("slug") or ""
+            url = ("https://4dayweek.io/jobs/" + slug) if slug else "https://4dayweek.io/remote-jobs"
+            tags = [t for t in (d.get("category"), d.get("level"), "4-day week") if t]
+            jobs.append(Job(
+                source="fourdayweek",
+                company=(d.get("company_name") or "Unknown").strip(),
+                title=title,
+                url=url,
+                location=loc,
+                remote=remote,
+                description="",
+                tags=tags,
+                posted_ts=str(d.get("posted") or ""),
+                ext_id=str(d.get("id") or ""),
+            ))
+        if query:
+            q = query.lower()
+            jobs = [j for j in jobs if q in j.text_blob()]
+        return jobs[:limit]
+
+
 class IndeedFileSource(JobSource):
     """Indeed jobs fetched via the LIVE Indeed connection.
 
@@ -1015,8 +1109,9 @@ class USCombinedSource(JobSource):
     attribution = ("Aggregated US sources: company career pages (registry: "
                    "Greenhouse/Lever/Ashby/SmartRecruiters/Workable/Workday) + The Muse "
                    "+ Greenhouse boards + Remotive + RemoteOK + Jobicy + SimplyHired "
-                   "+ Himalayas + Working Nomads + We Work Remotely + JSearch/Google-for-"
-                   "Jobs (adds Indeed & LinkedIn when a RapidAPI key is configured).")
+                   "+ Himalayas + Working Nomads + We Work Remotely + DevITjobs + 4 Day "
+                   "Week + JSearch/Google-for-Jobs (adds Indeed & LinkedIn when a RapidAPI "
+                   "key is configured).")
 
     def fetch(self, query="", limit=25):
         out = []
@@ -1026,7 +1121,8 @@ class USCombinedSource(JobSource):
         for src in (IndeedFileSource(), JSearchSource(), CompanyRegistrySource(),
                     SimplyHiredSource(), MuseSource(), GreenhouseSource(),
                     RemotiveSource(), RemoteOKSource(), JobicySource(),
-                    HimalayasSource(), WorkingNomadsSource(), WeWorkRemotelySource()):
+                    HimalayasSource(), WorkingNomadsSource(), WeWorkRemotelySource(),
+                    DevITjobsSource(), FourDayWeekSource()):
             try:
                 out.extend(src.fetch(query, limit * 3))
             except Exception:
@@ -1054,6 +1150,8 @@ _SOURCES = {
     "himalayas": HimalayasSource,
     "workingnomads": WorkingNomadsSource,
     "weworkremotely": WeWorkRemotelySource,
+    "devitjobs": DevITjobsSource,
+    "fourdayweek": FourDayWeekSource,
     "jsearch": JSearchSource,
     "indeed": IndeedFileSource,
     "companies": CompanyRegistrySource,

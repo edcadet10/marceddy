@@ -83,7 +83,7 @@ I wanted something I could leave running without wondering whether it was doing 
 Pick one with `scan --source <name>` (or `search --source <name>` for a quick smoke test). Most need no key.
 
 <details open>
-<summary><b>All 15 sources</b> — tap to collapse</summary>
+<summary><b>All 18 sources</b> — tap to collapse</summary>
 
 <br/>
 
@@ -100,6 +100,8 @@ Pick one with `scan --source <name>` (or `search --source <name>` for a quick sm
 | `himalayas` | — | Himalayas API. Remote, often US-eligible, usually with pay listed. |
 | `workingnomads` | — | Working Nomads API (remote roles). |
 | `weworkremotely` | — | We Work Remotely's RSS feed (remote roles). |
+| `devitjobs` | — | DevITjobs US API — US software/IT roles, usually with listed salary. |
+| `fourdayweek` | — | 4 Day Week API — roles with a four-day work week. |
 | `jsearch` | 🔑 key | JSearch / Google-for-Jobs; pulls in Indeed and LinkedIn too. Needs a RapidAPI key. |
 | `indeed` | 🔌 bridge | Reads a live-Indeed inbox dropped in by a small `claude -p` helper. |
 | `companies` | — | A curated company→ATS list, queried against each employer's public ATS API (Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Workday, Oracle). |
